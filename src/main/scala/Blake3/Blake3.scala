@@ -18,9 +18,14 @@ object Blake3{
 //          println(x.resize(8).getHexValue())
 //        }
 
-    val a = new Bitfield("0000")
-    val b = new Bitfield("A")
+    val a = Bitfield("1234")
+    val b = Bitfield("A")
     val c = a.setSubBits(b,4)
-    println(c.getHexValue())
+    println(a.HexValue)
+    println(a.rotateright(2).HexValue)
+
+    println(Blake2(""))
+    println("786a02f742015903c6c6fd852552d272912f4740e15847618a86e217f71f5419d25e1031afee585313896444934eb04b903a685b1448b755d56f701afe9be2ce")
+
   }
 }

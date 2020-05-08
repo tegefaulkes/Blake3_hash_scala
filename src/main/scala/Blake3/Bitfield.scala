@@ -1,28 +1,24 @@
 package Blake3
 
-class Bitfield(value: BigInt, val width: Int) {
-  val state: BigInt = value & genMask(width)
-  val bitwidth = width
-
-  def this(stringval: String, width: Int) {
-    this(BigInt(stringval, 16), width)
-  }
-  def this(stringval: String){
-    this(BigInt(stringval, 16), stringval.length()*4)
-  }
-  def this(value: Int, width: Int){
-    this(BigInt(value), width)
+case class Bitfield(value: BigInt, bitwidth: Int) {
+  val state: BigInt = {
+    val maskedval = value & genMask(bitwidth)
+    if(maskedval >=0 ) maskedval else BigInt(0)
   }
 
+  def toInt:Int = {
+    state.toInt
+  }
+  def toBigInt:BigInt = state
 
   def copy():Bitfield = {
-    new Bitfield(state, bitwidth)
+    Bitfield(state, bitwidth)
   }
   def resize(newWidth: Int):Bitfield = {
-    new Bitfield(state, newWidth)
+    Bitfield(state, newWidth)
   }
 
-  def getHexValue():String = {
+  def HexValue:String = {
     val stringLength = state.toString(16).length()
     val expectedLength = bitwidth/4
     val difference = expectedLength - stringLength
@@ -43,37 +39,52 @@ class Bitfield(value: BigInt, val width: Int) {
     val mask = genMask(width)
     val shift = if (posA < posB) posA else posB
     val returnvalue = (state & (mask << shift)) >> shift
-    new Bitfield(returnvalue, width)
+    Bitfield(returnvalue, width)
   }
   def getSubBits(pos: Int):Bitfield = {
     getSubBits(pos, pos)
+  }
+  def getSubBits(posA: Bitfield, posB: Bitfield):Bitfield = {
+    getSubBits(posA.toInt, posB.toInt)
+  }
+  def getSubBits(pos: Bitfield):Bitfield = {
+    getSubBits(pos,pos)
   }
 
   def setSubBits(value: Bitfield, pos: Int): Bitfield = {
     val valueWidth = value.bitwidth
     val antiMask = genMask(bitwidth) ^ (genMask(valueWidth) << pos)
     val newvalue = (state & antiMask) + (value.state << pos)
-    new Bitfield(newvalue, bitwidth)
+    Bitfield(newvalue, bitwidth)
   }
 
-  def getSubChunk(bitWidth: Int, chunkPosition: Int, chunks: Int):Bitfield = {
-    val mask = genMask(bitWidth)
-    val shift = (chunks - chunkPosition - 1) * bitWidth
+  def getSubChunk(width: Int, chunkPosition: Int, chunks: Int):Bitfield = {
+    val mask = genMask(width)
+    val shift = (chunks - chunkPosition - 1) * width
     val output = (state & (mask << shift)) >> shift
-    new Bitfield(output, bitWidth)
+    Bitfield(output, width)
   }
 
   def subdivide(divisions: Int):Array[Bitfield] = {
     if(bitwidth % divisions == 0){
       val output = new Array[Bitfield](divisions)
       val subWidth = bitwidth/divisions
-      for (x <- 0 to divisions - 1){
+      for (x <- 0 until divisions){
         output(x) = getSubChunk(subWidth, x, divisions)
       }
       output
     }else{
-      throw new RuntimeException(s"bidfield.subdivide({$width}) does not evenly divide {$bitwidth}")
+      throw new RuntimeException(s"bidfield.subdivide({$divisions}) does not evenly divide {$bitwidth}")
     }
+  }
+
+  def rotateright(shift: Int): Bitfield = {
+    val newshift = shift % bitwidth
+    val mask = genMask(newshift)
+    val maskedValue = state & mask
+    val shifteda  = state >> newshift
+    val shiftedb = maskedValue << (bitwidth - newshift)
+    Bitfield(shifteda+shiftedb, bitwidth)
   }
 
   def cat(value: Bitfield):Bitfield = {
@@ -81,79 +92,143 @@ class Bitfield(value: BigInt, val width: Int) {
     val rightState = value.state
     val shift = value.bitwidth
     val newstate = (leftState << shift) + rightState
-    new Bitfield(newstate, bitwidth + shift)
+    Bitfield(newstate, bitwidth + shift)
   }
 
 
   //infix operators.
 
   def +(that: Bitfield): Bitfield = {
-    new Bitfield(state + that.state, bitwidth)
+    Bitfield(state + that.state, bitwidth)
   }
   def +(that: Int):Bitfield = {
-    new Bitfield(state + that, bitwidth)
+    Bitfield(state + that, bitwidth)
   }
-  //  def -(that: blake3.Bitfield): blake3.Bitfield = { //TODO finish this. look up 2's complement subtraction.
-  //    val thisValue = state
-  //    val thatValue = that.state
-  //    val newValue = thisValue - thatValue
-  //  }
+  def -(that: Bitfield): Bitfield = {
+    Bitfield(state - that.state, bitwidth)
+  }
+  def -(that: Int): Bitfield = {
+    val newValue = state - that
+    Bitfield(state - that, bitwidth)
+  }
   def *(that: Bitfield): Bitfield = {
-    new Bitfield(state * that.state, bitwidth)
+    Bitfield(state * that.state, bitwidth)
   }
   def *(that: Int): Bitfield = {
-    new Bitfield(state * that, bitwidth)
+    Bitfield(state * that, bitwidth)
   }
   def /(that: Bitfield): Bitfield = {
-    new Bitfield(state / that.state, bitwidth)
+    Bitfield(state / that.state, bitwidth)
   }
 
   def <<(shift: Int): Bitfield = {
-    new Bitfield(state << shift, bitwidth)
+    Bitfield(state << shift, bitwidth)
   }
   def >>(shift: Int): Bitfield = {
-    new Bitfield(state >> shift, bitwidth)
+    Bitfield(state >> shift, bitwidth)
   }
 
   //bitwise
   def unary_~(): Bitfield ={
-    new Bitfield(~state, bitwidth)
+    Bitfield(~state, bitwidth)
   }
   def &(that: Bitfield): Bitfield = {
-    new Bitfield(state & that.state, bitwidth)
+    Bitfield(state & that.state, bitwidth)
   }
   def |(that: Bitfield): Bitfield = {
-    new Bitfield(state | that.state, bitwidth)
+    Bitfield(state | that.state, bitwidth)
   }
   def ^(that: Bitfield): Bitfield = {
-    new Bitfield(state ^ that.state, bitwidth)
+    Bitfield(state ^ that.state, bitwidth)
   }
 
   //boolean
   def >(that: Bitfield): Boolean = {
     state > that.state
   }
+  def >(that: Int): Boolean = {
+    state > that
+  }
   def >=(that: Bitfield): Boolean = {
     state >= that.state
   }
-  def <(that: Bitfield): Boolean = {
+  def >=(that: Int): Boolean = {
+    state >= that
+  }
+  def < (that: Bitfield): Boolean = {
     state < that.state
+  }
+  def < (that: Int): Boolean = {
+    state < that
   }
   def <=(that: Bitfield): Boolean = {
     state <= that.state
   }
+  def <=(that: Int): Boolean = {
+    state <= that
+  }
   def ==(that: Bitfield): Boolean = {
     state == that.state
+  }
+  def ==(that: Int): Boolean = {
+    state == that
   }
   def !=(that: Bitfield): Boolean = {
     state != that.state
   }
-
-
-  def unary_+(): Bitfield ={
-    new Bitfield(state, bitwidth)
+  def !=(that: Int): Boolean = {
+    state != that
   }
 
+  def unary_+(): Bitfield ={
+    Bitfield(state, bitwidth)
+  }
+
+}
+
+object Bitfield {
+  def apply(stringval: String, width: Int):Bitfield = {
+    Bitfield(BigInt(stringval, 16), width)
+  }
+
+  def apply(stringval: String):Bitfield = {
+    if(stringval.length() == 0) Bitfield(BigInt(0),0)
+    else Bitfield(BigInt(stringval, 16), stringval.length()*4)
+  }
+
+  def apply(value: Int, width: Int): Bitfield = {
+    Bitfield(BigInt(value), width)
+  }
+
+  def apply(width: Int): Bitfield = {
+    Bitfield(BigInt(0), width)
+  }
+
+  def apply(value: Bitfield, width: Int): Bitfield = {
+    Bitfield(value.state, width)
+  }
+
+  def apply(value: Bitfield): Bitfield = {
+    Bitfield(value.state, value.bitwidth)
+  }
+
+  def combine(in: Array[Bitfield]):Bitfield = {
+    var totalBits = 0
+    var totalValue = BigInt(0)
+    for(field <- in){
+      totalValue += field.state << totalBits
+      totalBits += field.bitwidth
+    }
+    Bitfield(totalValue, totalBits)
+  }
+
+  def genMask(width: Int): Bitfield = {
+    Bitfield(BigInt(2).pow(width) - 1, width)
+  }
+
+  def genMask(width: Bitfield): Bitfield = {
+    genMask(width.toInt)
+  }
 }
 
 
