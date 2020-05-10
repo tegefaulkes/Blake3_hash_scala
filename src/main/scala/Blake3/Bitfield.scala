@@ -212,6 +212,15 @@ object Bitfield {
     Bitfield(value.state, value.bitwidth)
   }
 
+  def apply(longArray: Array[Long]):Array[Bitfield] = {
+    val length = longArray.length
+    val fieldArray = new Array[Bitfield](length)
+    for(x <- 0 until length){
+      fieldArray(x) = Bitfield(BigInt(longArray(x)), 64)
+    }
+    fieldArray
+  }
+
   def combine(in: Array[Bitfield]):Bitfield = {
     var totalBits = 0
     var totalValue = BigInt(0)
