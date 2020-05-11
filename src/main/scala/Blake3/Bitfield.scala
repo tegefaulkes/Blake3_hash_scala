@@ -26,11 +26,16 @@ case class Bitfield(value: BigInt, bitwidth: Int) {
   }
 
   def toByteArray: Array[Byte] = {
-    value.toByteArray
+    val length = bitwidth / 8
+    val byteArray = new Array[Byte](length)
+    for(x <- 0 until length){
+      byteArray(x) = ((value >> (x * 8)) & BigInt("FF",16)).toInt.toByte
+    }
+    byteArray
   }
 
   def reverseBytes: Bitfield = {
-    Bitfield(BigInt(toByteArray.reverse) >> 8, bitwidth)
+    Bitfield(BigInt(toByteArray), bitwidth)
   }
 
   private def genMask(width: Int): BigInt = {

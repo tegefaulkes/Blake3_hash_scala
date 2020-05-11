@@ -37,21 +37,19 @@ class Blake2(in_M: WordField, in_Key: WordField, in_cbHashLen: Int, config: Bcon
     }
 
     while(cBytesRemaining > 128){
-      val chunk = message.getSubBytes(cBytesRemaining-128,cBytesRemaining)
-      println(chunk.sizeInBytes)
+      val chunk = message.getSubBytes(cBytesRemaining,cBytesRemaining - 128)
       cBytesCompressed += 128
-      cBytesRemaining  = cBytesRemaining - 128
-      h = compress(h, chunk, cBytesCompressed, false)
+      cBytesRemaining  -= 128
+      h = compress(h, chunk, cBytesCompressed, isLastBlock = false)
     }
 
-    var chunk = message.getSubBytes(0, cBytesRemaining.toInt)
+    var chunk = message.getSubBytes(cBytesRemaining, 0)
     cBytesCompressed += cBytesRemaining
     chunk = pad(chunk, 128)
-
-    h = compress(h, chunk, cBytesCompressed, true)
+    h = compress(h, chunk, cBytesCompressed, isLastBlock = true)
 
 //    Result ← first cbHashLen bytes of little endian state vector h
-    (Bitfield.combine(h) & Bitfield.genMask(cbHashLen.toInt * 8)) //TODO, combine is likely the wrong order.
+    Bitfield.combine(h) & Bitfield.genMask(cbHashLen.toInt * 8)
   }
 
   def compress(h: Array[Bitfield], chunk: WordField, incBytesCompressed: Bitfield, isLastBlock: Boolean):Array[Bitfield] = {

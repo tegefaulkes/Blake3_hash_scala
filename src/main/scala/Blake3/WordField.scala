@@ -7,8 +7,8 @@ case class WordField(data: String){
   def sizeInBits: Int = sizeInBytes * 8
 
   def getSubBytes(beginIndex: Int, endIndex: Int): WordField = {
-    data.length
-    WordField(data.substring(beginIndex, endIndex))
+    val length = data.length
+    WordField(data.substring(length - beginIndex, length - endIndex))
   }
 
   def subdivide(chunkSize: Int): Array[WordField] = {
@@ -62,10 +62,9 @@ case class WordField(data: String){
 
   private def read64Word(stringWord: String): Long = {
     var word:Long = 0
-    var count = 0
-    for (i <- stringWord){
-      word += i.toInt << (count * 8)
-      count += 1
+    var byteArray = stringWord.getBytes()
+    for (i <- 0 until 8){
+      word += byteArray(i).toLong << (i * 8)
     }
     word
   }
