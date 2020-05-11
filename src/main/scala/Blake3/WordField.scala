@@ -7,6 +7,7 @@ case class WordField(data: String){
   def sizeInBits: Int = sizeInBytes * 8
 
   def getSubBytes(beginIndex: Int, endIndex: Int): WordField = {
+    data.length
     WordField(data.substring(beginIndex, endIndex))
   }
 

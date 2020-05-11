@@ -25,11 +25,14 @@ case class Bitfield(value: BigInt, bitwidth: Int) {
     "0" * difference + state.toString(16)
   }
 
-  /**
-   * generates a mask of all 1 bits of set width.
-   * @param width width of mask in bits.
-   * @return mask
-   */
+  def toByteArray: Array[Byte] = {
+    value.toByteArray
+  }
+
+  def reverseBytes: Bitfield = {
+    Bitfield(BigInt(toByteArray.reverse) >> 8, bitwidth)
+  }
+
   private def genMask(width: Int): BigInt = {
     BigInt(2).pow(width) - 1
   }

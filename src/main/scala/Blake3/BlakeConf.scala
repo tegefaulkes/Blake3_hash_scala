@@ -2,8 +2,6 @@ package Blake3
 
 import scala.runtime.BoxesRunTime
 
-class BlakeConf {}
-
 case class Bconf( wordSize: Int,
                   fRounds: Int,
                   blockBytes: Int,

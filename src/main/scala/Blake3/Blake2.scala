@@ -28,7 +28,7 @@ class Blake2(in_M: WordField, in_Key: WordField, in_cbHashLen: Int, config: Bcon
 
     var newconst = Bitfield("01010000")
     newconst = newconst.setSubBits(Bitfield(cbKeyLen, 8), 8)
-    newconst = newconst.setSubBits(Bitfield(cbHashLen, 8), 8)
+    newconst = newconst.setSubBits(Bitfield(cbHashLen, 8), 0)
     h(0) = h(0)^newconst
 
     if (cbKeyLen > 0) {
@@ -37,46 +37,39 @@ class Blake2(in_M: WordField, in_Key: WordField, in_cbHashLen: Int, config: Bcon
     }
 
     while(cBytesRemaining > 128){
-      val chunk = message.getSubBytes(cBytesRemaining, cBytesRemaining-128)
+      val chunk = message.getSubBytes(cBytesRemaining-128,cBytesRemaining)
+      println(chunk.sizeInBytes)
       cBytesCompressed += 128
       cBytesRemaining  = cBytesRemaining - 128
-      h = compress(h, chunk, cBytesCompressed, false) //FIXME fix function for use with a wordfield for chunk.
+      h = compress(h, chunk, cBytesCompressed, false)
     }
 
-    var chunk = message.getSubBytes(cBytesRemaining.toInt,0)
+    var chunk = message.getSubBytes(0, cBytesRemaining.toInt)
     cBytesCompressed += cBytesRemaining
     chunk = pad(chunk, 128)
 
-    h = compress(h, chunk, cBytesCompressed, true) //FIXME
+    h = compress(h, chunk, cBytesCompressed, true)
 
 //    Result ← first cbHashLen bytes of little endian state vector h
-    Bitfield.combine(h) & Bitfield.genMask(cbHashLen.toInt * 8) //TODO, combine is likely the wrong order.
+    (Bitfield.combine(h) & Bitfield.genMask(cbHashLen.toInt * 8)) //TODO, combine is likely the wrong order.
   }
 
   def compress(h: Array[Bitfield], chunk: WordField, incBytesCompressed: Bitfield, isLastBlock: Boolean):Array[Bitfield] = {
 
     var v = new Array[Bitfield](16)
     h.copyToArray(v)
-    for(x <- 0 until 8){
-      v(x+8) = iv(x)
-    }
-    val split = incBytesCompressed.subdivide(2)
-    v(12) = v(12) ^ split(0)
-    v(13) = v(13) ^ split(1)
+    for(x <- 0 until 8) v(x+8) = iv(x)
 
-    if (isLastBlock){
-      v(14) = v(14) ^ Bitfield("FFFFFFFFFFFFFFFF")
-    }
+    val split = incBytesCompressed.subdivide(2)
+    v(12) = v(12) ^ split(1)
+    v(13) = v(13) ^ split(0)
+
+    if (isLastBlock) v(14) = v(14) ^ Bitfield("FFFFFFFFFFFFFFFF")
 
     val m = Bitfield(chunk.generateWord64Array)
-    for(x <- m){println(x.HexValue)}
 
     for (i <- 0 until 12){
-      //        Select message mixing schedule for this round.
-      //        BLAKE2b uses 12 rounds, while SIGMA has only 10 entries.
-      //        S0..15 ← SIGMA[i mod 10]   Rounds 10 and 11 use SIGMA[0] and SIGMA[1] respectively
       val s = sigma(i%10)
-
 
       v = mix(v, 0, 4, 8,  12, m(s(0)), m(s(1)))
       v = mix(v, 1, 5, 9,  13, m(s(2)), m(s(3)))
@@ -89,8 +82,7 @@ class Blake2(in_M: WordField, in_Key: WordField, in_cbHashLen: Int, config: Bcon
       v = mix(v, 3, 4, 9,  14, m(s(14)),m(s(15)))
     }
     for (x <- 0 until 8){
-      h(x) = h(x) ^ v(x)
-      h(x) = h(x) ^ v(x+8)
+      h(x) = h(x) ^ v(x) ^ v(x+8)
     }
     h
   }
@@ -117,7 +109,8 @@ object Blake2{
 
   def apply(in_M: WordField, in_Key: WordField, in_cbHashLen: Int, config: Bconf): String ={
     val blake = new Blake2(in_M, in_Key, in_cbHashLen, config)
-    blake.hash().HexValue
+    val hashValue = blake.hash()
+    hashValue.reverseBytes.HexValue
   }
 
   def apply(in_M: WordField): String = {
