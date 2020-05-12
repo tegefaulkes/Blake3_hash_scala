@@ -57,12 +57,17 @@ case class WordField(data: String){
 
 
   private def read32Word(stringWord: String): Int = {
-    (read64Word(stringWord) & 0xFFFFFFFF).toInt
+    var word: Int = 0
+    val byteArray = stringWord.getBytes()
+    for (i <- 0 until 4){
+      word += byteArray(i).toInt << (i * 8)
+    }
+    word
   }
 
   private def read64Word(stringWord: String): Long = {
     var word:Long = 0
-    var byteArray = stringWord.getBytes()
+    val byteArray = stringWord.getBytes()
     for (i <- 0 until 8){
       word += byteArray(i).toLong << (i * 8)
     }

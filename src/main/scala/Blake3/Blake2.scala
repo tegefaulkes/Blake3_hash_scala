@@ -14,6 +14,8 @@ class Blake2(in_M: WordField, in_Key: WordField, in_cbHashLen: Int, config: Bcon
   private var cBytesRemaining = cbMessageLen
 
   private val (iv, sigma) = config.getConstants
+  private val (r1: Int, r2: Int, r3: Int, r4: Int) = config.gRConstants
+  private val bb = config.blockBytes
 
 
   def pad(key: WordField, size: Int):WordField = {
@@ -32,20 +34,20 @@ class Blake2(in_M: WordField, in_Key: WordField, in_cbHashLen: Int, config: Bcon
     h(0) = h(0)^newconst
 
     if (cbKeyLen > 0) {
-      message = pad(key, 128).cat(message)
-      cBytesRemaining = cBytesRemaining + 128
+      message = pad(key, bb).cat(message)
+      cBytesRemaining = cBytesRemaining + bb
     }
 
-    while(cBytesRemaining > 128){
-      val chunk = message.getSubBytes(cBytesRemaining,cBytesRemaining - 128)
-      cBytesCompressed += 128
-      cBytesRemaining  -= 128
+    while(cBytesRemaining > bb){
+      val chunk = message.getSubBytes(cBytesRemaining,cBytesRemaining - bb)
+      cBytesCompressed += bb
+      cBytesRemaining  -= bb
       h = compress(h, chunk, cBytesCompressed, isLastBlock = false)
     }
 
     var chunk = message.getSubBytes(cBytesRemaining, 0)
     cBytesCompressed += cBytesRemaining
-    chunk = pad(chunk, 128)
+    chunk = pad(chunk, bb)
     h = compress(h, chunk, cBytesCompressed, isLastBlock = true)
 
 //    Result ← first cbHashLen bytes of little endian state vector h
@@ -64,9 +66,11 @@ class Blake2(in_M: WordField, in_Key: WordField, in_cbHashLen: Int, config: Bcon
 
     if (isLastBlock) v(14) = v(14) ^ Bitfield("FFFFFFFFFFFFFFFF")
 
-    val m = Bitfield(chunk.generateWord64Array)
 
-    for (i <- 0 until 12){
+    val m = if(config.wordSize == 64) Bitfield(chunk.generateWord64Array) else Bitfield(chunk.generateWord32Array)
+
+
+    for (i <- 0 until config.fRounds){
       val s = sigma(i%10)
 
       v = mix(v, 0, 4, 8,  12, m(s(0)), m(s(1)))
@@ -90,13 +94,13 @@ class Blake2(in_M: WordField, in_Key: WordField, in_cbHashLen: Int, config: Bcon
     inV.copyToArray(v)
 
     v(a) = v(a) + v(b) + x
-    v(d) = (v(d) ^ v(a)).rotateright(32)
+    v(d) = (v(d) ^ v(a)).rotateright(r1)
     v(c) = v(c) + v(d)
-    v(b) = (v(b) ^ v(c)).rotateright(24)
+    v(b) = (v(b) ^ v(c)).rotateright(r2)
     v(a) = v(a) + v(b) + y
-    v(d) = (v(d) ^ v(a)).rotateright(16)
+    v(d) = (v(d) ^ v(a)).rotateright(r3)
     v(c) = v(c) + v(d)
-    v(b) = (v(b) ^ v(c)).rotateright(63)
+    v(b) = (v(b) ^ v(c)).rotateright(r4)
 
     v
   }
@@ -130,4 +134,17 @@ object Blake2{
   def b2b_512(message: String): String = {
     b2b_512(message, "")
   }
+
+  def b2s_256(in_m:WordField, in_key: WordField): String = {
+    Blake2(in_m, in_key, 32, Cblake2s_256_default())
+  }
+
+  def b2s_256(message: String, key: String): String = {
+    b2s_256(WordField(message), WordField(key))
+  }
+
+  def b2s_256(message: String): String = {
+    b2s_256(message, "")
+  }
+
 }

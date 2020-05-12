@@ -229,6 +229,15 @@ object Bitfield {
     fieldArray
   }
 
+  def apply(intArray: Array[Int]): Array[Bitfield] = {
+    val length = intArray.length
+    val fieldArray = new Array[Bitfield](length)
+    for(x <- 0 until length){
+      fieldArray(x) = Bitfield(BigInt(intArray(x)), 64)
+    }
+    fieldArray
+  }
+
   def combine(in: Array[Bitfield]):Bitfield = {
     var totalBits = 0
     var totalValue = BigInt(0)

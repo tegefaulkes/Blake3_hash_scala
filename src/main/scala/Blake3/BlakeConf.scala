@@ -26,14 +26,14 @@ case class Bconf( wordSize: Int,
         outIV
 
       case 1 =>
-        outIV(0) = Bitfield("0000000000000000")
-        outIV(1) = Bitfield("0000000000000000")
-        outIV(2) = Bitfield("0000000000000000")
-        outIV(3) = Bitfield("0000000000000000")
-        outIV(4) = Bitfield("0000000000000000")
-        outIV(5) = Bitfield("0000000000000000")
-        outIV(6) = Bitfield("0000000000000000")
-        outIV(7) = Bitfield("0000000000000000")
+        outIV(0) = Bitfield("6A09E667")
+        outIV(1) = Bitfield("BB67AE85")
+        outIV(2) = Bitfield("3C6EF372")
+        outIV(3) = Bitfield("A54FF53A")
+        outIV(4) = Bitfield("510E527F")
+        outIV(5) = Bitfield("9B05688C")
+        outIV(6) = Bitfield("1F83D9AB")
+        outIV(7) = Bitfield("5BE0CD19")
         outIV
     }
   }
@@ -61,3 +61,4 @@ case class Bconf( wordSize: Int,
 object Cblake2b{def apply(hashByte: Int, keyBytes: Int):Bconf = Bconf(64, 12,128, hashByte, keyBytes, 128, (32, 24, 16, 63), 0)}
 object Cblake2s{def apply(hashByte: Int, keyBytes: Int):Bconf = Bconf(32, 10,64, hashByte, keyBytes, 128, (16, 12, 8, 7), 1)}
 object Cblake2b_512_default{def apply(): Bconf = Cblake2b(64,0)}
+object Cblake2s_256_default{def apply(): Bconf = Cblake2s(32, 0)}
